@@ -1092,7 +1092,7 @@ func constFold(exp ast.Expr) ast.Expr { // {{{
 			case "^":
 				return &constLValueExpr{Value: LNumber(math.Pow(float64(lvalue), float64(rvalue)))}
 			default:
-				panic(fmt.Sprintf("unknwon binop: %v", expr.Operator))
+				panic(fmt.Sprintf("unknown binop: %v", expr.Operator))
 			}
 		} else {
 			retexpr := *expr
