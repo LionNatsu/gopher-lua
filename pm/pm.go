@@ -77,21 +77,21 @@ func (st *MatchData) Capture(idx int) int { return int(st.captures[idx] >> 1) }
 /* scanner {{{ */
 
 type scannerState struct {
-	pos     int
+	Pos     int
 	started bool
 }
 
 type scanner struct {
 	src   []byte
-	state scannerState
+	State scannerState
 	saved scannerState
 }
 
 func newScanner(src []byte) *scanner {
 	return &scanner{
 		src: src,
-		state: scannerState{
-			pos:     0,
+		State: scannerState{
+			Pos:     0,
 			started: false,
 		},
 		saved: scannerState{},
@@ -101,55 +101,55 @@ func newScanner(src []byte) *scanner {
 func (sc *scanner) Length() int { return len(sc.src) }
 
 func (sc *scanner) Next() int {
-	if !sc.state.started {
-		sc.state.started = true
+	if !sc.State.started {
+		sc.State.started = true
 		if len(sc.src) == 0 {
-			sc.state.pos = EOS
+			sc.State.Pos = EOS
 		}
 	} else {
-		sc.state.pos = sc.NextPos()
+		sc.State.Pos = sc.NextPos()
 	}
-	if sc.state.pos == EOS {
+	if sc.State.Pos == EOS {
 		return EOS
 	}
-	return int(sc.src[sc.state.pos])
+	return int(sc.src[sc.State.Pos])
 }
 
 func (sc *scanner) CurrentPos() int {
-	return sc.state.pos
+	return sc.State.Pos
 }
 
 func (sc *scanner) NextPos() int {
-	if sc.state.pos == EOS || sc.state.pos >= len(sc.src)-1 {
+	if sc.State.Pos == EOS || sc.State.Pos >= len(sc.src)-1 {
 		return EOS
 	}
-	if !sc.state.started {
+	if !sc.State.started {
 		return 0
 	} else {
-		return sc.state.pos + 1
+		return sc.State.Pos + 1
 	}
 }
 
 func (sc *scanner) Peek() int {
-	cureof := sc.state.pos == EOS
+	cureof := sc.State.Pos == EOS
 	ch := sc.Next()
 	if !cureof {
-		if sc.state.pos == EOS {
-			sc.state.pos = len(sc.src) - 1
+		if sc.State.Pos == EOS {
+			sc.State.Pos = len(sc.src) - 1
 		} else {
-			sc.state.pos--
-			if sc.state.pos < 0 {
-				sc.state.pos = 0
-				sc.state.started = false
+			sc.State.Pos--
+			if sc.State.Pos < 0 {
+				sc.State.Pos = 0
+				sc.State.started = false
 			}
 		}
 	}
 	return ch
 }
 
-func (sc *scanner) Save() { sc.saved = sc.state }
+func (sc *scanner) Save() { sc.saved = sc.State }
 
-func (sc *scanner) Restore() { sc.state = sc.saved }
+func (sc *scanner) Restore() { sc.State = sc.saved }
 
 /* }}} */
 
@@ -170,10 +170,10 @@ const (
 )
 
 type inst struct {
-	code     opCode
-	cls      class
-	operand1 int
-	operand2 int
+	OpCode   opCode
+	Class    class
+	Operand1 int
+	Operand2 int
 }
 
 /* }}} */
@@ -189,18 +189,18 @@ type dotClass struct{}
 func (pn *dotClass) Matches(ch int) bool { return true }
 
 type charClass struct {
-	ch int
+	Ch int
 }
 
-func (pn *charClass) Matches(ch int) bool { return pn.ch == ch }
+func (pn *charClass) Matches(ch int) bool { return pn.Ch == ch }
 
 type singleClass struct {
-	class int
+	Class int
 }
 
 func (pn *singleClass) Matches(ch int) bool {
 	ret := false
-	switch pn.class {
+	switch pn.Class {
 	case 'a', 'A':
 		ret = 'A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z'
 	case 'c', 'C':
@@ -225,41 +225,41 @@ func (pn *singleClass) Matches(ch int) bool {
 	case 'z', 'Z':
 		ret = ch == 0
 	default:
-		return ch == pn.class
+		return ch == pn.Class
 	}
-	if 'A' <= pn.class && pn.class <= 'Z' {
+	if 'A' <= pn.Class && pn.Class <= 'Z' {
 		return !ret
 	}
 	return ret
 }
 
 type setClass struct {
-	isNot   bool
-	classes []class
+	IsNot   bool
+	Classes []class
 }
 
 func (pn *setClass) Matches(ch int) bool {
-	for _, class := range pn.classes {
+	for _, class := range pn.Classes {
 		if class.Matches(ch) {
-			return !pn.isNot
+			return !pn.IsNot
 		}
 	}
-	return pn.isNot
+	return pn.IsNot
 }
 
 type rangeClass struct {
-	begin class
-	end   class
+	Begin class
+	End   class
 }
 
 func (pn *rangeClass) Matches(ch int) bool {
-	switch begin := pn.begin.(type) {
+	switch begin := pn.Begin.(type) {
 	case *charClass:
-		end, ok := pn.end.(*charClass)
+		end, ok := pn.End.(*charClass)
 		if !ok {
 			return false
 		}
-		return begin.ch <= ch && ch <= end.ch
+		return begin.Ch <= ch && ch <= end.Ch
 	}
 	return false
 }
@@ -271,33 +271,33 @@ func (pn *rangeClass) Matches(ch int) bool {
 type pattern interface{}
 
 type singlePattern struct {
-	cls class
+	Class class
 }
 
 type seqPattern struct {
-	mustHead bool
-	mustTail bool
-	patterns []pattern
+	MustHead bool
+	MustTail bool
+	Patterns []pattern
 }
 
 type repeatPattern struct {
-	t   int
-	cls class
+	Type  int
+	Class class
 }
 
 type posCapPattern struct{}
 
 type capPattern struct {
-	pattern pattern
+	Pattern pattern
 }
 
 type numberPattern struct {
-	n int
+	N int
 }
 
 type bracePattern struct {
-	begin int
-	end   int
+	Begin int
+	End   int
 }
 
 // }}}
@@ -332,7 +332,7 @@ func parseClass(sc *scanner, allowset bool) class {
 func parseClassSet(sc *scanner) class {
 	set := &setClass{false, []class{}}
 	if sc.Peek() == '^' {
-		set.isNot = true
+		set.IsNot = true
 		sc.Next()
 	}
 	isrange := false
@@ -347,26 +347,26 @@ func parseClassSet(sc *scanner) class {
 		case EOS:
 			panic(newError(sc.CurrentPos(), "unexpected EOS"))
 		case '-':
-			if len(set.classes) > 0 {
+			if len(set.Classes) > 0 {
 				sc.Next()
 				isrange = true
 				continue
 			}
 			fallthrough
 		default:
-			set.classes = append(set.classes, parseClass(sc, false))
+			set.Classes = append(set.Classes, parseClass(sc, false))
 		}
 		if isrange {
-			begin := set.classes[len(set.classes)-2]
-			end := set.classes[len(set.classes)-1]
-			set.classes = set.classes[0 : len(set.classes)-2]
-			set.classes = append(set.classes, &rangeClass{begin, end})
+			begin := set.Classes[len(set.Classes)-2]
+			end := set.Classes[len(set.Classes)-1]
+			set.Classes = set.Classes[0 : len(set.Classes)-2]
+			set.Classes = append(set.Classes, &rangeClass{begin, end})
 			isrange = false
 		}
 	}
 exit:
 	if isrange {
-		set.classes = append(set.classes, &charClass{'-'})
+		set.Classes = append(set.Classes, &charClass{'-'})
 	}
 
 	return set
@@ -377,7 +377,7 @@ func parsePattern(sc *scanner, toplevel bool) *seqPattern {
 	if toplevel {
 		if sc.Peek() == '^' {
 			sc.Next()
-			pat.mustHead = true
+			pat.MustHead = true
 		}
 	}
 	for {
@@ -390,16 +390,16 @@ func parsePattern(sc *scanner, toplevel bool) *seqPattern {
 			case '0':
 				panic(newError(sc.CurrentPos(), "invalid capture index"))
 			case '1', '2', '3', '4', '5', '6', '7', '8', '9':
-				pat.patterns = append(pat.patterns, &numberPattern{sc.Next() - 48})
+				pat.Patterns = append(pat.Patterns, &numberPattern{sc.Next() - 48})
 			case 'b':
 				sc.Next()
-				pat.patterns = append(pat.patterns, &bracePattern{sc.Next(), sc.Next()})
+				pat.Patterns = append(pat.Patterns, &bracePattern{sc.Next(), sc.Next()})
 			default:
 				sc.Restore()
-				pat.patterns = append(pat.patterns, &singlePattern{parseClass(sc, true)})
+				pat.Patterns = append(pat.Patterns, &singlePattern{parseClass(sc, true)})
 			}
 		case '.', '[':
-			pat.patterns = append(pat.patterns, &singlePattern{parseClass(sc, true)})
+			pat.Patterns = append(pat.Patterns, &singlePattern{parseClass(sc, true)})
 		case ']':
 			panic(newError(sc.CurrentPos(), "invalid ']'"))
 		case ')':
@@ -411,31 +411,31 @@ func parsePattern(sc *scanner, toplevel bool) *seqPattern {
 			sc.Next()
 			if sc.Peek() == ')' {
 				sc.Next()
-				pat.patterns = append(pat.patterns, &posCapPattern{})
+				pat.Patterns = append(pat.Patterns, &posCapPattern{})
 			} else {
 				ret := &capPattern{parsePattern(sc, false)}
 				if sc.Peek() != ')' {
 					panic(newError(sc.CurrentPos(), "unfinished capture"))
 				}
 				sc.Next()
-				pat.patterns = append(pat.patterns, ret)
+				pat.Patterns = append(pat.Patterns, ret)
 			}
 		case '*', '+', '-', '?':
 			sc.Next()
-			if len(pat.patterns) > 0 {
-				spat, ok := pat.patterns[len(pat.patterns)-1].(*singlePattern)
+			if len(pat.Patterns) > 0 {
+				spat, ok := pat.Patterns[len(pat.Patterns)-1].(*singlePattern)
 				if ok {
-					pat.patterns = pat.patterns[0 : len(pat.patterns)-1]
-					pat.patterns = append(pat.patterns, &repeatPattern{ch, spat.cls})
+					pat.Patterns = pat.Patterns[0 : len(pat.Patterns)-1]
+					pat.Patterns = append(pat.Patterns, &repeatPattern{ch, spat.Class})
 					continue
 				}
 			}
-			pat.patterns = append(pat.patterns, &singlePattern{&charClass{ch}})
+			pat.Patterns = append(pat.Patterns, &singlePattern{&charClass{ch}})
 		case '$':
 			if toplevel && (sc.NextPos() == sc.Length()-1 || sc.NextPos() == EOS) {
-				pat.mustTail = true
+				pat.MustTail = true
 			} else {
-				pat.patterns = append(pat.patterns, &singlePattern{&charClass{ch}})
+				pat.Patterns = append(pat.Patterns, &singlePattern{&charClass{ch}})
 			}
 			sc.Next()
 		case EOS:
@@ -443,7 +443,7 @@ func parsePattern(sc *scanner, toplevel bool) *seqPattern {
 			goto exit
 		default:
 			sc.Next()
-			pat.patterns = append(pat.patterns, &singlePattern{&charClass{ch}})
+			pat.Patterns = append(pat.Patterns, &singlePattern{&charClass{ch}})
 		}
 	}
 exit:
@@ -466,32 +466,32 @@ func compilePattern(p pattern, ps ...*iptr) []inst {
 	}
 	switch pat := p.(type) {
 	case *singlePattern:
-		ptr.insts = append(ptr.insts, inst{opChar, pat.cls, -1, -1})
+		ptr.insts = append(ptr.insts, inst{opChar, pat.Class, -1, -1})
 	case *seqPattern:
-		for _, cp := range pat.patterns {
+		for _, cp := range pat.Patterns {
 			compilePattern(cp, ptr)
 		}
 	case *repeatPattern:
 		idx := len(ptr.insts)
-		switch pat.t {
+		switch pat.Type {
 		case '*':
 			ptr.insts = append(ptr.insts,
 				inst{opSplit, nil, idx + 1, idx + 3},
-				inst{opChar, pat.cls, -1, -1},
+				inst{opChar, pat.Class, -1, -1},
 				inst{opJmp, nil, idx, -1})
 		case '+':
 			ptr.insts = append(ptr.insts,
-				inst{opChar, pat.cls, -1, -1},
+				inst{opChar, pat.Class, -1, -1},
 				inst{opSplit, nil, idx, idx + 2})
 		case '-':
 			ptr.insts = append(ptr.insts,
 				inst{opSplit, nil, idx + 3, idx + 1},
-				inst{opChar, pat.cls, -1, -1},
+				inst{opChar, pat.Class, -1, -1},
 				inst{opJmp, nil, idx, -1})
 		case '?':
 			ptr.insts = append(ptr.insts,
 				inst{opSplit, nil, idx + 1, idx + 2},
-				inst{opChar, pat.cls, -1, -1})
+				inst{opChar, pat.Class, -1, -1})
 		}
 	case *posCapPattern:
 		ptr.insts = append(ptr.insts, inst{opPSave, nil, ptr.capture, -1})
@@ -500,15 +500,15 @@ func compilePattern(p pattern, ps ...*iptr) []inst {
 		c0, c1 := ptr.capture, ptr.capture+1
 		ptr.capture += 2
 		ptr.insts = append(ptr.insts, inst{opSave, nil, c0, -1})
-		compilePattern(pat.pattern, ptr)
+		compilePattern(pat.Pattern, ptr)
 		ptr.insts = append(ptr.insts, inst{opSave, nil, c1, -1})
 	case *bracePattern:
-		ptr.insts = append(ptr.insts, inst{opBrace, nil, pat.begin, pat.end})
+		ptr.insts = append(ptr.insts, inst{opBrace, nil, pat.Begin, pat.End})
 	case *numberPattern:
-		ptr.insts = append(ptr.insts, inst{opNumber, nil, pat.n, -1})
+		ptr.insts = append(ptr.insts, inst{opNumber, nil, pat.N, -1})
 	}
 	if toplevel {
-		if p.(*seqPattern).mustTail {
+		if p.(*seqPattern).MustTail {
 			ptr.insts = append(ptr.insts, inst{opSave, nil, 1, -1}, inst{opTailMatch, nil, -1, -1})
 		}
 		ptr.insts = append(ptr.insts, inst{opSave, nil, 1, -1}, inst{opMatch, nil, -1, -1})
@@ -531,9 +531,9 @@ func recursiveVM(src []byte, insts []inst, pc, sp int, ms ...*MatchData) (bool, 
 	}
 redo:
 	inst := insts[pc]
-	switch inst.code {
+	switch inst.OpCode {
 	case opChar:
-		if sp >= len(src) || !inst.cls.Matches(int(src[sp])) {
+		if sp >= len(src) || !inst.Class.Matches(int(src[sp])) {
 			return false, sp, m
 		}
 		pc++
@@ -544,32 +544,32 @@ redo:
 	case opTailMatch:
 		return sp >= len(src), sp, m
 	case opJmp:
-		pc = inst.operand1
+		pc = inst.Operand1
 		goto redo
 	case opSplit:
-		if ok, nsp, _ := recursiveVM(src, insts, inst.operand1, sp, m); ok {
+		if ok, nsp, _ := recursiveVM(src, insts, inst.Operand1, sp, m); ok {
 			return true, nsp, m
 		}
-		pc = inst.operand2
+		pc = inst.Operand2
 		goto redo
 	case opSave:
-		s := m.setCapture(inst.operand1, sp)
+		s := m.setCapture(inst.Operand1, sp)
 		if ok, nsp, _ := recursiveVM(src, insts, pc+1, sp, m); ok {
 			return true, nsp, m
 		}
-		m.restoreCapture(inst.operand1, s)
+		m.restoreCapture(inst.Operand1, s)
 		return false, sp, m
 	case opPSave:
-		m.addPosCapture(inst.operand1, sp+1)
+		m.addPosCapture(inst.Operand1, sp+1)
 		pc++
 		goto redo
 	case opBrace:
-		if sp >= len(src) || int(src[sp]) != inst.operand1 {
+		if sp >= len(src) || int(src[sp]) != inst.Operand1 {
 			return false, sp, m
 		}
 		count := 1
 		for sp = sp + 1; sp < len(src); sp++ {
-			if int(src[sp]) == inst.operand2 {
+			if int(src[sp]) == inst.Operand2 {
 				count--
 			}
 			if count == 0 {
@@ -577,13 +577,13 @@ redo:
 				sp++
 				goto redo
 			}
-			if int(src[sp]) == inst.operand1 {
+			if int(src[sp]) == inst.Operand1 {
 				count++
 			}
 		}
 		return false, sp, m
 	case opNumber:
-		idx := inst.operand1 * 2
+		idx := inst.Operand1 * 2
 		if idx >= m.CaptureLength()-1 {
 			panic(newError(_UNKNOWN, "invalid capture index"))
 		}
@@ -627,7 +627,7 @@ func Find(p string, src []byte, offset, limit int) (matches []*MatchData, err er
 			}
 			matches = append(matches, ms)
 		}
-		if len(matches) == limit || pat.mustHead {
+		if len(matches) == limit || pat.MustHead {
 			break
 		}
 	}

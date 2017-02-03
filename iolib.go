@@ -341,9 +341,9 @@ func fileReadAux(L *LState, file *lFile, idx int) int {
 				file.reader.UnreadByte()
 			}
 			var buf []byte
-			var empty bool
-			buf, empty, err = readBufioSize(file.reader, size)
-			if empty {
+			var iseof bool
+			buf, err, iseof = readBufioSize(file.reader, size)
+			if iseof {
 				L.Push(LNil)
 				goto normalreturn
 			}
@@ -382,9 +382,9 @@ func fileReadAux(L *LState, file *lFile, idx int) int {
 					L.Push(LString(string(buf)))
 				case 'l':
 					var buf []byte
-					var empty bool
-					buf, empty, err = readBufioLine(file.reader)
-					if empty {
+					var iseof bool
+					buf, err, iseof = readBufioLine(file.reader)
+					if iseof {
 						L.Push(LNil)
 						goto normalreturn
 					}

@@ -75,21 +75,22 @@ func (fs *flagScanner) Next() (byte, bool) {
 			fs.AppendString(fs.end)
 		}
 		return c, true
-	}
-	c = fs.str[fs.Pos]
-	if c == fs.flag {
-		if fs.Pos < (fs.Length-1) && fs.str[fs.Pos+1] == fs.flag {
-			fs.HasFlag = false
-			fs.AppendChar(fs.flag)
-			fs.Pos += 2
-			return fs.Next()
-		} else if fs.Pos != fs.Length-1 {
-			if fs.HasFlag {
-				fs.AppendString(fs.end)
+	} else {
+		c = fs.str[fs.Pos]
+		if c == fs.flag {
+			if fs.Pos < (fs.Length-1) && fs.str[fs.Pos+1] == fs.flag {
+				fs.HasFlag = false
+				fs.AppendChar(fs.flag)
+				fs.Pos += 2
+				return fs.Next()
+			} else if fs.Pos != fs.Length-1 {
+				if fs.HasFlag {
+					fs.AppendString(fs.end)
+				}
+				fs.AppendString(fs.start)
+				fs.ChangeFlag = true
+				fs.HasFlag = true
 			}
-			fs.AppendString(fs.start)
-			fs.ChangeFlag = true
-			fs.HasFlag = true
 		}
 	}
 	fs.Pos++
@@ -138,16 +139,18 @@ func isArrayKey(v LNumber) bool {
 }
 
 func parseNumber(number string) (LNumber, error) {
+	var value LNumber
 	number = strings.Trim(number, " \t\n")
-	vi, err := strconv.ParseInt(number, 0, LNumberBit)
-	if err == nil {
-		return LNumber(vi), nil
+	if v, err := strconv.ParseInt(number, 0, LNumberBit); err != nil {
+		if v2, err2 := strconv.ParseFloat(number, LNumberBit); err2 != nil {
+			return LNumber(0), err2
+		} else {
+			value = LNumber(v2)
+		}
+	} else {
+		value = LNumber(v)
 	}
-	vf, err := strconv.ParseFloat(number, LNumberBit)
-	if err == nil {
-		return LNumber(vf), nil
-	}
-	return LNumber(0), err
+	return value, nil
 }
 
 func popenArgs(arg string) (string, []string) {
@@ -172,7 +175,7 @@ func isGoroutineSafe(lv LValue) bool {
 	}
 }
 
-func readBufioSize(reader *bufio.Reader, size int64) ([]byte, bool, error) {
+func readBufioSize(reader *bufio.Reader, size int64) ([]byte, error, bool) {
 	result := []byte{}
 	read := int64(0)
 	var err error
@@ -187,14 +190,14 @@ func readBufioSize(reader *bufio.Reader, size int64) ([]byte, bool, error) {
 		result = append(result, buf[:n]...)
 	}
 	e := err
-	if e == io.EOF {
+	if e != nil && e == io.EOF {
 		e = nil
 	}
 
-	return result, len(result) == 0 && err == io.EOF, e
+	return result, e, len(result) == 0 && err == io.EOF
 }
 
-func readBufioLine(reader *bufio.Reader) ([]byte, bool, error) {
+func readBufioLine(reader *bufio.Reader) ([]byte, error, bool) {
 	result := []byte{}
 	var buf []byte
 	var err error
@@ -207,11 +210,11 @@ func readBufioLine(reader *bufio.Reader) ([]byte, bool, error) {
 		result = append(result, buf...)
 	}
 	e := err
-	if e == io.EOF {
+	if e != nil && e == io.EOF {
 		e = nil
 	}
 
-	return result, len(result) == 0 && err == io.EOF, e
+	return result, e, len(result) == 0 && err == io.EOF
 }
 
 func int2Fb(val int) int {
